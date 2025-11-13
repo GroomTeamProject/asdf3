@@ -9,9 +9,6 @@ on:
       - ".github/workflows/**"
       - "infra/k8s/order-service.yaml"
 
-concurrency:
-  group: manifest-service
-  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -88,6 +85,8 @@ jobs:
         with:
           commit_message: "chore: Update ${SERVICE_NAME} image tag to ${{ github.sha }}"
           branch: manifest/service
+          skip_checkout: true
+          push_options: '--force-with-lease'
           
 
       - name: Trigger ArgoCD Sync
