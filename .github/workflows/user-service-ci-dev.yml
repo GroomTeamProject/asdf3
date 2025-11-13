@@ -8,6 +8,9 @@ on:
       - "msa/libs/**"
       - ".github/workflows/**"
       - "infra/k8s/user-service.yaml"
+      
+permissions:
+  contents: write
 
 env:
   AWS_REGION: ap-northeast-2
