@@ -85,7 +85,16 @@ jobs:
           commit_message: "chore: Update ${SERVICE_NAME} image tag to ${{ github.sha }}"
           branch: manifest/service
           skip_checkout: true
-          push_options: '--force-with-lease'
+          commit_options: '--allow-empty'
+
+      - name: Safely rebase and push updated manifest
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin manifest/service
+          git rebase origin/manifest/service || git rebase --skip || true
+          git push origin HEAD:manifest/service --force-with-lease
+
 
       - name: Trigger ArgoCD Sync
         run: |
