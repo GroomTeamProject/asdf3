@@ -83,7 +83,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "chore: Update user-service image tag to ${{ github.sha }}"
-          branch: manifest/service
+
 
       - name: Trigger ArgoCD Sync
         run: |
