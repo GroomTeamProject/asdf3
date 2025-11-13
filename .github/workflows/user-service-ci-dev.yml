@@ -1,29 +1,36 @@
-name: User Service CI - Build & Test
+name: CI/CD - user-service (PR to manifest/service)
 
 on:
-  pull_request:
-    branches: ["manifest/service"]
+  push:
+    branches:
+      - test/pr-run          # ✅ 최종에는 develop에서 돌게. 테스트할 땐 test/pr-run으로 바꿔도 됨
     paths:
       - "msa/user-service/**"
-      - "msa/libs/**"
       - ".github/workflows/**"
-      - "infra/k8s/user-service.yaml"
-      
+
 permissions:
-  contents: write
+  contents: write        # PR용 브랜치 push 권한
+  pull-requests: write   # PR 생성/업데이트 권한
+
+concurrency:
+  group: pr-user-service-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   AWS_REGION: ap-northeast-2
   SERVICE_NAME: user-service
-  ECR_REPO: team02-user-service
+  ECR_REPO: team02-user-service               # ✅ ECR repo 이름
+  MANIFEST_FILE: infra/k8s/user-service.yaml  # ✅ 이 매니페스트의 image 라인 교체
 
 jobs:
-  build_and_test:
+  build-test-push-pr:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # PR 브랜치 생성 위해 전체 히스토리 필요할 수 있음
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -31,79 +38,68 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ env.SERVICE_NAME }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-${{ env.SERVICE_NAME }}-
-            ${{ runner.os }}-gradle-
-
-      - name: Build & Test ${{ env.SERVICE_NAME }}
+      - name: Build & Test user-service
         run: |
           cd msa/${{ env.SERVICE_NAME }}
           ../gradlew :${{ env.SERVICE_NAME }}:build
 
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.SERVICE_NAME }}-test-report
-          path: msa/${{ env.SERVICE_NAME }}/build/reports/tests/test
-      
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}           # ✅ 미리 세팅
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}   # ✅ 미리 세팅
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image and push to ECR
+      - name: Build & Push Docker Image to ECR
         run: |
           IMAGE_TAG=${{ github.sha }}
           ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}
 
+          echo "Building image: $ECR_URI:$IMAGE_TAG"
           docker build -t $ECR_URI:$IMAGE_TAG ./msa/${{ env.SERVICE_NAME }}
           docker tag $ECR_URI:$IMAGE_TAG $ECR_URI:latest
+
+          echo "Pushing images to ECR..."
           docker push $ECR_URI:$IMAGE_TAG
           docker push $ECR_URI:latest
 
-      - name: Update manifest image tag
+      - name: Create/Update PR branch and bump manifest image
         run: |
-          sed -i "s|image:.*|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ github.sha }}|g" infra/k8s/${{ env.SERVICE_NAME }}.yaml
+          PR_BRANCH="bot/${{ env.SERVICE_NAME }}/${{ github.sha }}"
+          git checkout -b "$PR_BRANCH"
 
-      - name: Git rebase & push (safe update)
-        run: |
+          # 매니페스트의 image 라인을 새 태그로 교체
+          sed -i "s|image:.*|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ github.sha }}|g" ${{ env.MANIFEST_FILE }}
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # ✅ 먼저 변경사항을 임시 커밋
-          git add infra/k8s/${{ env.SERVICE_NAME }}.yaml
-          git commit -m "temp: prepare rebase for ${{ env.SERVICE_NAME }}" || echo "No temp commit"
 
-          # ✅ 원격 최신 상태로 리베이스
-          git fetch origin manifest/service
-          git rebase origin/manifest/service || echo "No rebase needed"
+          git add ${{ env.MANIFEST_FILE }}
+          git commit -m "chore(${{
+            env.SERVICE_NAME
+          }}): bump image to ${{ github.sha }}" || echo "No changes to commit"
 
-          # ✅ 최종 커밋으로 덮어쓰기
-          git commit --amend -m "chore: update ${{ env.SERVICE_NAME }} image tag to ${{ github.sha }}" || echo "No changes"
+          git push --set-upstream origin "$PR_BRANCH" --force-with-lease
 
-          # ✅ 푸시
-          git push origin manifest/service --force-with-lease
+      - name: Create PR into manifest/service
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "chore(${{
+            env.SERVICE_NAME
+          }}): deploy ${{ github.sha }}"
+          body: |
+            Auto PR generated by CI for **${{ env.SERVICE_NAME }}**.
 
-      - name: Trigger ArgoCD Sync
-        run: |
-          curl -k -X POST \
-            -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            https://a157766b00097494a9240ee5c353438e-968922374.ap-northeast-2.elb.amazonaws.com/api/v1/applications/team02-microservices/sync
-      
-
-
+            - Image: `${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ github.sha }}`
+            - Manifest: `${{ env.MANIFEST_FILE }}`
+          commit-message: "chore(${{
+            env.SERVICE_NAME
+          }}): bump image to ${{ github.sha }}"
+          branch: "bot/${{ env.SERVICE_NAME }}/${{ github.sha }}"  # PR head 브랜치
+          base: "manifest/service"                                  # PR base 브랜치
+          labels: |
+            auto-merge
+            user-service
