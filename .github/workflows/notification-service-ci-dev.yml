@@ -82,8 +82,8 @@ jobs:
       - name: Commit updated manifest
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: "chore: Update review-service image tag to ${{ github.sha }}"
-
+          commit_message: "chore: Update ${SERVICE_NAME} image tag to ${{ github.sha }}"
+          skip_checkout: true
 
       - name: Trigger ArgoCD Sync
         run: |
