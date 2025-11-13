@@ -86,8 +86,9 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "chore: Update ${SERVICE_NAME} image tag to ${{ github.sha }}"
+          branch: manifest/service
           skip_checkout: true
-          push_options: '--force'
+          push_options: '--force-with-lease'
 
 
       - name: Trigger ArgoCD Sync
