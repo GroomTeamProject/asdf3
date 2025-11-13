@@ -1,5 +1,10 @@
 name: Review Service CI - Build & Test
 
+concurrency:
+  group: manifest-service
+  cancel-in-progress: false
+
+
 on:
   pull_request:
     branches: ["manifest/service"]
@@ -90,13 +95,31 @@ jobs:
 
       - name: Safely rebase and push updated manifest
         run: |
+          set -eo pipefail
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin manifest/service
-          git rebase origin/manifest/service || git rebase --skip || true
-          git push origin HEAD:manifest/service --force-with-lease
 
-          
+          success=false
+          for attempt in 1 2 3 4 5; do
+            git fetch origin manifest/service
+            if git rebase origin/manifest/service; then
+              if git push origin HEAD:manifest/service --force-with-lease; then
+                success=true
+                break
+              fi
+            else
+              git rebase --abort || true
+            fi
+
+            git rebase --abort || true
+            sleep $((attempt * 5))
+          done
+
+          if [ "$success" != "true" ]; then
+            echo "Failed to push manifest update after multiple attempts" >&2
+            exit 1
+          fi
+
 
       - name: Trigger ArgoCD Sync
         run: |
