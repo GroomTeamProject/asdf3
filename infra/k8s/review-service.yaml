@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: review-service
-        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-review-service:bdcae142cac45fa349fecdb3bdf11e8ed3952347
+        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-review-service:c88f3d54a13a59d7615fac206177bca4af822766
         ports:
         - containerPort: 8086
         envFrom:
