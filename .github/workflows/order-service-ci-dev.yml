@@ -80,42 +80,16 @@ jobs:
         run: |
           sed -i "s|image:.*|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ github.sha }}|g" infra/k8s/${{ env.SERVICE_NAME }}.yaml
 
-      - name: Commit updated manifest
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "chore: Update ${SERVICE_NAME} image tag to ${{ github.sha }}"
-          branch: manifest/service
-          skip_checkout: true
-          commit_options: '--allow-empty'
-      
-      - name: Safely rebase and push updated manifest
+      - name: Git rebase & push (safe update)
         run: |
-          set -eo pipefail
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          success=false
-          for attempt in 1 2 3 4 5; do
-            git fetch origin manifest/service
-            if git rebase origin/manifest/service; then
-              if git push origin HEAD:manifest/service --force-with-lease; then
-                success=true
-                break
-              fi
-            else
-              git rebase --abort || true
-            fi
-
-            git rebase --abort || true
-            sleep $((attempt * 5))
-          done
-
-          if [ "$success" != "true" ]; then
-            echo "Failed to push manifest update after multiple attempts" >&2
-            exit 1
-          fi
-
-          
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin manifest/service
+          git checkout manifest/service
+          git pull --rebase origin manifest/service
+          git add infra/k8s/${{ env.SERVICE_NAME }}.yaml
+          git commit -m "chore: update ${{ env.SERVICE_NAME }} image tag to ${{ github.sha }}" || echo "No changes"
+          git push origin manifest/service
 
       - name: Trigger ArgoCD Sync
         run: |
