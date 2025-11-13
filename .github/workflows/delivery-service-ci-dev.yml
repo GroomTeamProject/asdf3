@@ -9,10 +9,6 @@ on:
       - ".github/workflows/**"
       - "infra/k8s/delivery-service.yaml"
 
-concurrency:
-  group: manifest-service
-  cancel-in-progress: false
-
 permissions:
   contents: write
 

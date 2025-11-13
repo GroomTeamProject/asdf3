@@ -8,10 +8,6 @@ on:
       - "msa/libs/**"
       - ".github/workflows/**"
       - "infra/k8s/user-service.yaml"
-
-concurrency:
-  group: manifest-service
-  cancel-in-progress: false
       
 permissions:
   contents: write
