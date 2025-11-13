@@ -2,15 +2,24 @@ name: Review Service CI - Build & Test
 
 on:
   pull_request:
-    branches: [develop]
+    branches: ["manifest/service"]
     paths:
       - "msa/review-service/**"
       - "msa/libs/**"
       - ".github/workflows/**"
+      - "infra/k8s/review-service.yaml"
+
+concurrency:
+  group: manifest-service
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 env:
-  REGISTRY: docker.io
+  AWS_REGION: ap-northeast-2
   SERVICE_NAME: review-service
+  ECR_REPO: team02-review-service
 
 jobs:
   build_and_test:
@@ -49,25 +58,43 @@ jobs:
           name: ${{ env.SERVICE_NAME }}-test-report
           path: msa/${{ env.SERVICE_NAME }}/build/reports/tests/test
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image and push to ECR
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}
+
+          docker build -t $ECR_URI:$IMAGE_TAG ./msa/${{ env.SERVICE_NAME }}
+          docker tag $ECR_URI:$IMAGE_TAG $ECR_URI:latest
+          docker push $ECR_URI:$IMAGE_TAG
+          docker push $ECR_URI:latest
+
+      - name: Update manifest image tag
+        run: |
+          sed -i "s|image:.*|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ github.sha }}|g" infra/k8s/${{ env.SERVICE_NAME }}.yaml
+
+      - name: Commit updated manifest
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          context: ./msa/${{ env.SERVICE_NAME }}
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-${{ env.SERVICE_NAME }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-${{ env.SERVICE_NAME }}:latest
-          cache-from: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-${{ env.SERVICE_NAME }}:latest
-            type=gha
-          cache-to: type=gha,mode=max
+          commit_message: "chore: Update ${SERVICE_NAME} image tag to ${{ github.sha }}"
+          branch: manifest/service
+          skip_checkout: true
+          push_options: '--force-with-lease'
+          
+
+      - name: Trigger ArgoCD Sync
+        run: |
+          curl -k -X POST \
+            -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://a157766b00097494a9240ee5c353438e-968922374.ap-northeast-2.elb.amazonaws.com/api/v1/applications/team02-microservices/sync
