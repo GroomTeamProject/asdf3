@@ -83,12 +83,20 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin manifest/service
-          git checkout manifest/service
-          git pull --rebase origin manifest/service
+          
+          # ✅ 먼저 변경사항을 임시 커밋
           git add infra/k8s/${{ env.SERVICE_NAME }}.yaml
-          git commit -m "chore: update ${{ env.SERVICE_NAME }} image tag to ${{ github.sha }}" || echo "No changes"
-          git push origin manifest/service
+          git commit -m "temp: prepare rebase for ${{ env.SERVICE_NAME }}" || echo "No temp commit"
+
+          # ✅ 원격 최신 상태로 리베이스
+          git fetch origin manifest/service
+          git rebase origin/manifest/service || echo "No rebase needed"
+
+          # ✅ 최종 커밋으로 덮어쓰기
+          git commit --amend -m "chore: update ${{ env.SERVICE_NAME }} image tag to ${{ github.sha }}" || echo "No changes"
+
+          # ✅ 푸시
+          git push origin manifest/service --force-with-lease
 
       - name: Trigger ArgoCD Sync
         run: |
