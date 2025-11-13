@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: notification-service
-        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-notification-service:latest
+        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-notification-service:c95c2867f09860e91636f7f2cbed3faee33653ef
         ports:
         - containerPort: 8088
         envFrom:
