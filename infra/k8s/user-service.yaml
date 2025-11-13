@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-user-service:e1e4911fa73363c0d3f4c3bdd0eff65f889756d3
+        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-user-service:3dce15eb551fbe261cca91dab3a3c0c236c2d95b
         ports:
         - containerPort: 8082
         envFrom:
