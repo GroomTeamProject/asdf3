@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: payment-service
-        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-payment-service:latest
+        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-payment-service:fee0fbddf1798cc8ade92b32f1b505b0df2522dd
         ports:
         - containerPort: 8084
         envFrom:
