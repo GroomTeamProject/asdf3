@@ -1,13 +1,13 @@
-name: Order Service CI - Build & Test
+name: Payment Service CI - Build & Test
 
 on:
   pull_request:
     branches: ["manifest/service"]
     paths:
-      - "msa/order-service/**"
+      - "msa/payment-service/**"
       - "msa/libs/**"
       - ".github/workflows/**"
-      - "infra/k8s/order-service.yaml"
+      - "infra/k8s/payment-service.yaml"
 
 concurrency:
   group: manifest-service
@@ -18,8 +18,8 @@ permissions:
 
 env:
   AWS_REGION: ap-northeast-2
-  SERVICE_NAME: order-service
-  ECR_REPO: team02-order-service
+  SERVICE_NAME: payment-service
+  ECR_REPO: team02-payment-service
 
 jobs:
   build_and_test:
@@ -82,14 +82,13 @@ jobs:
       - name: Update manifest image tag
         run: |
           sed -i "s|image:.*|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ github.sha }}|g" infra/k8s/${{ env.SERVICE_NAME }}.yaml
-
       - name: Commit updated manifest
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "chore: Update ${SERVICE_NAME} image tag to ${{ github.sha }}"
           skip_checkout: true
           push_options: '--force'
-          
+
 
       - name: Trigger ArgoCD Sync
         run: |
