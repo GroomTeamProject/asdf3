@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-user-service:latest #docker.io/wsk221e/team02-user-service:latest
+        image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-user-service:c45ab2f174b048555edeb7b29b440257e15c0574
         ports:
         - containerPort: 8082
         envFrom:
