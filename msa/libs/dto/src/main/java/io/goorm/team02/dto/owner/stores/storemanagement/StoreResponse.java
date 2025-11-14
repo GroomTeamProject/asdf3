@@ -14,6 +14,9 @@ public class StoreResponse {
     @Schema(description = "가게 ID", example = "1")
     private Long id;
 
+    @Schema(description = "가게 소유자 ID", example = "1")
+    private Long ownerId;
+
     @Schema(description = "사업자등록번호", example = "123-45-67890")
     private String businessNumber;
 

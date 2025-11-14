@@ -121,9 +121,28 @@ public class OrderService {
     public Order getOrderDetail(Long orderId, Long userId) {
         Order order = getOrderById(orderId);
 
-        // 권한 검증: 주문 소유자만 조회 가능
-        if (!order.getUserId().equals(userId)) {
-            throw new IllegalStateException("본인의 주문만 조회할 수 있습니다.");
+        // 권한 검증: 주문 소유자 또는 가게 소유자만 조회 가능
+        boolean isOrderOwner = order.getUserId().equals(userId);
+        
+        if (!isOrderOwner) {
+            // 가게 소유자인지 확인
+            try {
+                StoreResponse storeResponse = storeServiceClient.getStoreById(order.getStoreId()).getBody();
+                if (storeResponse != null && storeResponse.getOwnerId() != null) {
+                    boolean isStoreOwner = storeResponse.getOwnerId().equals(userId);
+                    if (!isStoreOwner) {
+                        throw new IllegalStateException("본인의 주문만 조회할 수 있습니다.");
+                    }
+                } else {
+                    throw new IllegalStateException("본인의 주문만 조회할 수 있습니다.");
+                }
+            } catch (Exception e) {
+                if (e instanceof IllegalStateException) {
+                    throw e;
+                }
+                log.error("가게 정보 조회 실패: {}", e.getMessage());
+                throw new IllegalStateException("본인의 주문만 조회할 수 있습니다.");
+            }
         }
 
         order.getOrderItems().forEach(orderItem -> {

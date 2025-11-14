@@ -50,6 +50,7 @@ public class StoreMapper {
                 .rating(store.getRating())
                 .reviewCount(store.getReviewCount())
                 .isActive(store.getIsActive())
+                .ownerId(store.getOwnerId())
                 .build();
     }
 
