@@ -72,7 +72,7 @@ jobs:
           git checkout -b "$PR_BRANCH"
 
           NEW_IMAGE="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ github.sha }}"
-          sed -i "s|^image:.*$|image: $NEW_IMAGE|g" ${{ env.MANIFEST_FILE }}
+          sed -i "s|^\s*image:.*|        image: $NEW_IMAGE|g" ${{ env.MANIFEST_FILE }}
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
