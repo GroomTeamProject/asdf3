@@ -31,3 +31,14 @@ variable "public_domain_name" {
   type        = string
   default     = ""
 }
+
+# ==========================================
+# EKS Variables
+# ==========================================
+
+variable "eks_admin_user_arn" {
+  description = "IAM User ARN for EKS admin access"
+  type        = string
+  sensitive   = false
+}
+

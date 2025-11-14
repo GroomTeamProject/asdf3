@@ -130,3 +130,36 @@ resource "aws_iam_openid_connect_provider" "eks" {
     Name = "team02-eks-oidc-provider"
   }
 }
+
+# ==========================================
+# AWS Auth ConfigMap for EKS
+# ==========================================
+
+resource "kubernetes_config_map" "aws_auth" {
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = aws_iam_role.eks_node_group_role.arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      }
+    ])
+
+    mapUsers = yamlencode([
+      {
+        userarn  = var.eks_admin_user_arn
+        username = "team02-dev"
+        groups   = ["system:masters"]
+      }
+    ])
+  }
+
+  depends_on = [
+    aws_eks_cluster.team02_eks
+  ]
+}
