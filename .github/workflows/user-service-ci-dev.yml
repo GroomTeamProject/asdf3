@@ -7,7 +7,6 @@ on:
     paths:
       - "msa/user-service/**"
       - ".github/workflows/**"
-      - infra/k8s/user-service.yaml
 
 permissions:
   contents: read
