@@ -1,0 +1,3 @@
+java_package: openjdk-11-jre-headless
+deploy_user: ubuntu
+backup_dir: /var/backups

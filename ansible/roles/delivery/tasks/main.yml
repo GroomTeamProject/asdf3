@@ -1,0 +1,54 @@
+---
+- name: Ensure delivery directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /home/ec2-user/services/delivery-src
+    - /home/ec2-user/services/delivery
+
+- name: Clone delivery from GitHub
+  git:
+    repo: 'https://github.com/GroomTeamProject/asdf3.git'
+    dest: /home/ec2-user/services/delivery-src
+    version: develop
+    force: yes
+
+- name: Build delivery on server
+  shell: ./gradlew build
+  args:
+    chdir: /home/ec2-user/services/delivery-src/msa/delivery-service
+
+- name: Copy built jar to deployment folder
+  copy:
+    src: /home/ec2-user/services/delivery-src/msa/delivery-service/build/libs/delivery-service.jar
+    dest: /home/ec2-user/services/delivery/delivery-service.jar
+    mode: '0755'
+
+- name: Create systemd service file for delivery
+  copy:
+    dest: /etc/systemd/system/delivery service
+    content: |
+      [Unit]
+      Description=delivery Service
+      After=network.target
+
+      [Service]
+      User=ec2-user
+      ExecStart=/usr/bin/java -jar /home/ec2-user/services/delivery/delivery-service.jar
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Start delivery
+  systemd:
+    name: delivery
+    state: started
+    enabled: yes

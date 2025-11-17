@@ -1,0 +1,60 @@
+---
+- name: Ensure necessary directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /home/ec2-user/services/payment-src
+    - /home/ec2-user/services/payment
+
+- name: Clone payment-service from GitHub
+  git:
+    repo: 'https://github.com/GroomTeamProject/asdf3.git'
+    dest: /home/ec2-user/services/payment-src
+    version: develop
+    force: yes
+
+- name: Ensure Java is installed
+  apt:
+    name: openjdk-17-jdk
+    state: present
+    update_cache: yes
+
+- name: Build payment-service on server
+  shell: ./gradlew build
+  args:
+    chdir: /home/ec2-user/services/payment-src/msa/payment-service
+
+- name: Copy built jar to deployment folder
+  copy:
+    src: /home/ec2-user/services/payment-src/msa/payment-service/build/libs/payment-service.jar
+    dest: /home/ec2-user/services/payment/payment-service.jar
+    mode: '0755'
+
+- name: Create systemd service file for payment-service
+  copy:
+    dest: /etc/systemd/system/payment.service
+    content: |
+      [Unit]
+      Description=Payment Service
+      After=network.target
+
+      [Service]
+      User=ec2-user
+      ExecStart=/usr/bin/java -jar /home/ec2-user/services/payment/payment-service.jar
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Start payment-service
+  systemd:
+    name: payment
+    state: started
+    enabled: yes

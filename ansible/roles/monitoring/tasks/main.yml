@@ -1,0 +1,23 @@
+---
+- name: Ensure monitoring directory exists
+  file:
+    path: /home/ec2-user/monitoring
+    state: directory
+    mode: '0755'
+
+- name: Ensure Docker is installed
+  apt:
+    name: docker.io
+    state: present
+    update_cache: yes
+
+- name: Download monitoring docker-compose from GitHub
+  get_url:
+    url: https://raw.githubusercontent.com/GroomTeamProject/asdf3/develop/msa/monitoring/docker-compose.monitoring.yml
+    dest: /home/ec2-user/monitoring/docker-compose.yml
+    mode: '0644'
+
+- name: Start monitoring stack with Docker Compose
+  command: docker-compose up -d
+  args:
+    chdir: /home/ec2-user/monitoring

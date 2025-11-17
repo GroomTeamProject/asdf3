@@ -1,0 +1,54 @@
+---
+- name: Ensure user directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /home/ec2-user/services/user-src
+    - /home/ec2-user/services/user
+
+- name: Clone user from GitHub
+  git:
+    repo: 'https://github.com/GroomTeamProject/asdf3.git'
+    dest: /home/ec2-user/services/user-src
+    version: develop
+    force: yes
+
+- name: Build user on server
+  shell: ./gradlew build
+  args:
+    chdir: /home/ec2-user/services/user-src/msa/user-service
+
+- name: Copy built jar to deployment folder
+  copy:
+    src: /home/ec2-user/services/user-src/msa/user-service/build/libs/user-service.jar
+    dest: /home/ec2-user/services/user/user-service.jar
+    mode: '0755'
+
+- name: Create systemd service file for user
+  copy:
+    dest: /etc/systemd/system/user.service
+    content: |
+      [Unit]
+      Description=user Service
+      After=network.target
+
+      [Service]
+      User=ec2-user
+      ExecStart=/usr/bin/java -jar /home/ec2-user/services/user/user-service.jar
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Start user
+  systemd:
+    name: user
+    state: started
+    enabled: yes

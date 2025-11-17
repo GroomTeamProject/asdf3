@@ -1,0 +1,54 @@
+---
+- name: Ensure owner directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /home/ec2-user/services/owner-src
+    - /home/ec2-user/services/owner
+
+- name: Clone owner from GitHub
+  git:
+    repo: 'https://github.com/GroomTeamProject/asdf3.git'
+    dest: /home/ec2-user/services/owner-src
+    version: develop
+    force: yes
+
+- name: Build owner on server
+  shell: ./gradlew build
+  args:
+    chdir: /home/ec2-user/services/owner-src/msa/owner-service
+
+- name: Copy built jar to deployment folder
+  copy:
+    src: /home/ec2-user/services/owner-src/msa/owner-service/build/libs/owner-service.jar
+    dest: /home/ec2-user/services/owner/owner-service.jar
+    mode: '0755'
+
+- name: Create systemd service file for owner
+  copy:
+    dest: /etc/systemd/system/owner.service
+    content: |
+      [Unit]
+      Description=owner Service
+      After=network.target
+
+      [Service]
+      User=ec2-user
+      ExecStart=/usr/bin/java -jar /home/ec2-user/services/owner/owner-service.jar
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Start owner
+  systemd:
+    name: owner
+    state: started
+    enabled: yes

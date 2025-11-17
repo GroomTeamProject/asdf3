@@ -1,0 +1,19 @@
+---
+- name: Install basic packages
+  apt:
+    name:
+      - git
+      - unzip
+      - curl
+      - openjdk-17-jdk
+    state: present
+    update_cache: yes
+
+- name: Ensure MSA directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /home/ec2-user/services
+    - /home/ec2-user/backups

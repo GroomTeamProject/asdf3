@@ -1,0 +1,19 @@
+---
+- name: Deploy MSA Services (GitHub build & systemd)
+  hosts: msa_servers
+  become: true
+  vars_files:
+    - group_vars/all.yml
+    - group_vars/msa.yml
+
+  roles:
+    - role: common
+    - role: payment
+    - role: order
+    - role: delivery
+    - role: owner
+    - role: user
+    - role: review
+    - role: notification
+    - role: gateway
+    - role: monitoring

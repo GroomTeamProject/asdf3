@@ -1,0 +1,54 @@
+---
+- name: Ensure notification directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /home/ec2-user/services/notification-src
+    - /home/ec2-user/services/notification
+
+- name: Clone notification from GitHub
+  git:
+    repo: 'https://github.com/GroomTeamProject/asdf3.git'
+    dest: /home/ec2-user/services/notification-src
+    version: develop
+    force: yes
+
+- name: Build notification on server
+  shell: ./gradlew build
+  args:
+    chdir: /home/ec2-user/services/notification-src/msa/notification-service
+
+- name: Copy built jar to deployment folder
+  copy:
+    src: /home/ec2-user/services/notification-src/msa/notification-service/build/libs/notification-service.jar
+    dest: /home/ec2-user/services/notification/notification-service.jar
+    mode: '0755'
+
+- name: Create systemd service file for notification
+  copy:
+    dest: /etc/systemd/system/notification.service
+    content: |
+      [Unit]
+      Description=notification Service
+      After=network.target
+
+      [Service]
+      User=ec2-user
+      ExecStart=/usr/bin/java -jar /home/ec2-user/services/notification/notification-service.jar
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Start notification
+  systemd:
+    name: notification
+    state: started
+    enabled: yes

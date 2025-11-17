@@ -1,0 +1,54 @@
+---
+- name: Ensure gateway directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /home/ec2-user/services/gateway-src
+    - /home/ec2-user/services/gateway
+
+- name: Clone gateway from GitHub
+  git:
+    repo: 'https://github.com/GroomTeamProject/asdf3.git'
+    dest: /home/ec2-user/services/gateway-src
+    version: develop
+    force: yes
+
+- name: Build gateway on server
+  shell: ./gradlew build
+  args:
+    chdir: /home/ec2-user/services/gateway-src/msa/gateway-service
+
+- name: Copy built jar to deployment folder
+  copy:
+    src: /home/ec2-user/services/gateway-src/msa/gateway-service/build/libs/gateway-service.jar
+    dest: /home/ec2-user/services/gateway/gateway-service.jar
+    mode: '0755'
+
+- name: Create systemd service file for gateway
+  copy:
+    dest: /etc/systemd/system/gateway.service
+    content: |
+      [Unit]
+      Description=<gateway Service
+      After=network.target
+
+      [Service]
+      User=ec2-user
+      ExecStart=/usr/bin/java -jar /home/ec2-user/services/gateway/gateway-service.jar
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Start gateway
+  systemd:
+    name: gateway
+    state: started
+    enabled: yes

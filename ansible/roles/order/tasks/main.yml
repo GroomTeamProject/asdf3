@@ -1,0 +1,54 @@
+---
+- name: Ensure order directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /home/ec2-user/services/order-src
+    - /home/ec2-user/services/order
+
+- name: Clone order-service from GitHub
+  git:
+    repo: 'https://github.com/GroomTeamProject/asdf3.git'
+    dest: /home/ec2-user/services/order-src
+    version: develop
+    force: yes
+
+- name: Build order-service on server
+  shell: ./gradlew build
+  args:
+    chdir: /home/ec2-user/services/order-src/msa/order-service
+
+- name: Copy built jar to deployment folder
+  copy:
+    src: /home/ec2-user/services/order-src/msa/order-service/build/libs/order-service.jar
+    dest: /home/ec2-user/services/order/order-service.jar
+    mode: '0755'
+
+- name: Create systemd service file
+  copy:
+    dest: /etc/systemd/system/order.service
+    content: |
+      [Unit]
+      Description=Order Service
+      After=network.target
+
+      [Service]
+      User=ec2-user
+      ExecStart=/usr/bin/java -jar /home/ec2-user/services/order/order-service.jar
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Start order-service
+  systemd:
+    name: order
+    state: started
+    enabled: yes

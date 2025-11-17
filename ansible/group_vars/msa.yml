@@ -1,0 +1,28 @@
+services:
+  - name: payment
+    jar_source: /home/ubuntu/builds/payment-service.jar
+    deploy_dir: /opt/payment-service
+  - name: delivery
+    jar_source: /home/ubuntu/builds/delivery-service.jar
+    deploy_dir: /opt/delivery-service
+  - name: order
+    jar_source: /home/ubuntu/builds/order-service.jar
+    deploy_dir: /opt/order-service
+  - name: owner
+    jar_source: /home/ubuntu/builds/owner-service.jar
+    deploy_dir: /opt/owner-service
+  - name: user
+    jar_source: /home/ubuntu/builds/user-service.jar
+    deploy_dir: /opt/user-service
+  - name: review
+    jar_source: /home/ubuntu/builds/review-service.jar
+    deploy_dir: /opt/review-service
+  - name: notification
+    jar_source: /home/ubuntu/builds/notification-service.jar
+    deploy_dir: /opt/notification-service
+  - name: gateway
+    jar_source: /home/ubuntu/builds/gateway.jar
+    deploy_dir: /opt/gateway
+  - name: monitoring
+    jar_source: /home/ubuntu/builds/monitoring.jar
+    deploy_dir: /opt/monitoring
