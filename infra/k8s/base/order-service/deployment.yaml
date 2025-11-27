@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: order-service
   namespace: team02
+  labels:
+    Service: order-service
 spec:
   replicas: 1
   selector:
@@ -12,6 +14,7 @@ spec:
     metadata:
       labels:
         app: order-service
+        Service: order-service
     spec:
       containers:
       - name: order-service
@@ -30,5 +33,3 @@ spec:
           limits:
             cpu: "500m"
             memory: "1024Mi"
-
-

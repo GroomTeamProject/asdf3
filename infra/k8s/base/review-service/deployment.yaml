@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: review-service
   namespace: team02
+  labels:
+    Service: review-service
 spec:
   replicas: 1
   selector:
@@ -12,6 +14,7 @@ spec:
     metadata:
       labels:
         app: review-service
+        Service: review-service
     spec:
       containers:
       - name: review-service
@@ -30,5 +33,3 @@ spec:
           limits:
             cpu: "500m"
             memory: "1024Mi"
-
-

@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: gateway
   namespace: team02
+  labels:
+    Service: gateway-service
 spec:
   replicas: 1
   selector:
@@ -12,6 +14,7 @@ spec:
     metadata:
       labels:
         app: gateway
+        Service: gateway-service   # ★ 핵심 추가!
     spec:
       containers:
       - name: gateway
@@ -36,6 +39,8 @@ kind: Service
 metadata:
   name: gateway
   namespace: team02
+  labels:
+    Service: gateway-service
 spec:
   type: ClusterIP
   selector:
@@ -57,10 +62,6 @@ metadata:
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:093322228889:certificate/97fa6a63-a3e7-45c7-98d1-928814c8dc65
     alb.ingress.kubernetes.io/healthcheck-path: /actuator/health
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
-    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
-    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
-    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
 spec:
   ingressClassName: alb
   rules:
@@ -74,4 +75,3 @@ spec:
             name: gateway
             port:
               number: 8080
-

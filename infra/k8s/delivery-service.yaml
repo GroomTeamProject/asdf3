@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: delivery-service
   namespace: team02
+  labels:
+    Service: delivery-service
 spec:
   replicas: 1
   selector:
@@ -12,6 +14,7 @@ spec:
     metadata:
       labels:
         app: delivery-service
+        Service: delivery-service
     spec:
       containers:
       - name: delivery-service
@@ -44,4 +47,3 @@ spec:
   - port: 8087
     targetPort: 8087
     protocol: TCP
-

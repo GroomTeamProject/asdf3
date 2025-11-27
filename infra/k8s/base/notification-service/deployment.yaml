@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: notification-service
   namespace: team02
+  labels:
+    Service: notification-service
 spec:
   replicas: 1
   selector:
@@ -12,6 +14,7 @@ spec:
     metadata:
       labels:
         app: notification-service
+        Service: notification-service
     spec:
       containers:
       - name: notification-service
@@ -30,5 +33,3 @@ spec:
           limits:
             cpu: "500m"
             memory: "1024Mi"
-
-

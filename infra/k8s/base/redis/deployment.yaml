@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: redis
   namespace: team02
+  labels:
+    Service: redis
 spec:
   replicas: 1
   selector:
@@ -12,6 +14,7 @@ spec:
     metadata:
       labels:
         app: redis
+        Service: redis
     spec:
       containers:
       - name: redis

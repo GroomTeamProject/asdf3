@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: owner-service
   namespace: team02
+  labels:
+    Service: owner-service
 spec:
   replicas: 1
   selector:
@@ -12,6 +14,7 @@ spec:
     metadata:
       labels:
         app: owner-service
+        Service: owner-service
     spec:
       containers:
       - name: owner-service
@@ -30,5 +33,3 @@ spec:
           limits:
             cpu: "500m"
             memory: "1024Mi"
-
-

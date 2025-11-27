@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: user-service
   namespace: team02
+  labels:
+    Service: user-service   # ★ 추가
 spec:
   replicas: 1
   selector:
@@ -12,9 +14,10 @@ spec:
     metadata:
       labels:
         app: user-service
+        Service: user-service   # ★ 추가
     spec:
       imagePullSecrets:
-      - name: ecr-secret 
+      - name: ecr-secret
       containers:
       - name: user-service
         image: 093322228889.dkr.ecr.ap-northeast-2.amazonaws.com/team02-user-service:latest
@@ -32,5 +35,3 @@ spec:
           limits:
             cpu: "500m"
             memory: "1024Mi"
-
-
